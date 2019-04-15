@@ -1,5 +1,5 @@
 {
-  "name": "@silvermine/videojs-chromecast",
+  "name": "videojs-chromecast-extended",
   "version": "1.1.2",
   "description": "video.js plugin for casting to chromecast",
   "main": "src/js/index.js",
@@ -11,7 +11,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/silvermine/videojs-chromecast.git"
+    "url": "git+https://github.com/locpd/videojs-chromecast.git"
   },
   "keywords": [
     "video.js",

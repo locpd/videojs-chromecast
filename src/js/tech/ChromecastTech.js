@@ -181,39 +181,7 @@ ChromecastTech = {
       if (this._subtitleCount) {
          // only start casting after all text tracks are added. loadeddata & loadedmetadata events don't work!
          var loaded = false;
-         this.videojsPlayer.remoteTextTracks().on('addtrack', () => {
-            // add subtitle to text tracks
-            var subtitles = this.videojsPlayer.remoteTextTracks();
-            if (subtitles.length === this._subtitleCount && !loaded) {
-               var tracks = [];
-               for (var i = 0; i < subtitles.length; i++) {
-                  var track = new chrome.cast.media.Track(i, chrome.cast.media.TrackType.TEXT);
-                  track.trackContentId = subtitles[i].src;
-                  track.trackContentType = 'text/vtt';
-                  track.subtype = chrome.cast.media.TextTrackType.CAPTIONS;
-                  track.name = subtitles[i].label;
-                  track.language = subtitles[i].srclang;
-                  tracks.push(track);
-               }
-               mediaInfo.tracks = tracks;
-
-               request = new chrome.cast.media.LoadRequest(mediaInfo);
-               request.autoplay = true;
-               request.currentTime = startTime;
-
-               // set active subtitle
-               if (subtitles.length > 0) {
-                  for (var j = 0; j < subtitles.length; j++) {
-                     if (subtitles[j].mode === 'showing') {
-                        request.activeTrackIds = [j]
-                     }
-                  }
-               }
-
-               this._loadMedia(request);
-               loaded = true;
-            }
-         })
+         this.videojsPlayer.remoteTextTracks().on('addtrack', this._onAddTrack.bind(this))
       } else {
          request = new chrome.cast.media.LoadRequest(mediaInfo);
          request.autoplay = true;
@@ -223,19 +191,55 @@ ChromecastTech = {
       }
 
       // on changing subtitle
-      this.videojsPlayer.remoteTextTracks().on('change', () => {
-         if (cast.framework.CastContext.getInstance().b) {
-            var index = [];
-            const subtitles = this.videojsPlayer.remoteTextTracks()
-            for (var i = 0; i < subtitles.length; i++) {
-               if (subtitles[i].mode === 'showing') {
-                  index = [i];
+      this.videojsPlayer.remoteTextTracks().on('change', this._onChangeTrack.bind(this))
+   },
+
+   _onAddTrack: function () {
+      // add subtitle to text tracks
+      var subtitles = this.videojsPlayer.remoteTextTracks();
+      if (subtitles.length === this._subtitleCount && !loaded) {
+         var tracks = [];
+         for (var i = 0; i < subtitles.length; i++) {
+            var track = new chrome.cast.media.Track(i, chrome.cast.media.TrackType.TEXT);
+            track.trackContentId = subtitles[i].src;
+            track.trackContentType = 'text/vtt';
+            track.subtype = chrome.cast.media.TextTrackType.CAPTIONS;
+            track.name = subtitles[i].label;
+            track.language = subtitles[i].srclang;
+            tracks.push(track);
+         }
+         mediaInfo.tracks = tracks;
+
+         request = new chrome.cast.media.LoadRequest(mediaInfo);
+         request.autoplay = true;
+         request.currentTime = startTime;
+
+         // set active subtitle
+         if (subtitles.length > 0) {
+            for (var j = 0; j < subtitles.length; j++) {
+               if (subtitles[j].mode === 'showing') {
+                  request.activeTrackIds = [j]
                }
             }
-            var tracksInfoRequest = new chrome.cast.media.EditTracksInfoRequest(index);
-            cast.framework.CastContext.getInstance().b.getSessionObj().media[0].editTracksInfo(tracksInfoRequest, null, null);
          }
-      })
+
+         this._loadMedia(request);
+         loaded = true;
+      }
+   },
+
+   _onChangeTrack: function () {
+      if (cast.framework.CastContext.getInstance().b) {
+         var index = [];
+         var subtitles = this.videojsPlayer.remoteTextTracks()
+         for (var i = 0; i < subtitles.length; i++) {
+            if (subtitles[i].mode === 'showing') {
+               index = [i];
+            }
+         }
+         var tracksInfoRequest = new chrome.cast.media.EditTracksInfoRequest(index);
+         cast.framework.CastContext.getInstance().b.getSessionObj().media[0].editTracksInfo(tracksInfoRequest, null, null);
+      }
    },
 
    _loadMedia: function(request) {
