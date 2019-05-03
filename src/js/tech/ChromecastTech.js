@@ -179,11 +179,12 @@ ChromecastTech = {
       this._ui.updateSubtitle(subtitle);
 
       if (this._subtitleCount) {
-         // only start casting after all text tracks are added. loadeddata & loadedmetadata events don't work!
-         var loaded = false;
-         this.videojsPlayer.remoteTextTracks().on('addtrack', this._onAddTrack.bind(this))
+         // only start casting after all text tracks are added.
+         // loadeddata & loadedmetadata events don't work!
+         // possible reason: https://stackoverflow.com/a/16349834/775087
+         window.setTimeout(this._deferredLoad.bind(this, mediaInfo, startTime), 1000);
       } else {
-         request = new chrome.cast.media.LoadRequest(mediaInfo);
+         request = new chrome.cast.media.LoadRequest(mediaInfo, startTime);
          request.autoplay = true;
          request.currentTime = startTime;
 
@@ -191,16 +192,21 @@ ChromecastTech = {
       }
 
       // on changing subtitle
-      this.videojsPlayer.remoteTextTracks().on('change', this._onChangeTrack.bind(this))
+      this.videojsPlayer.remoteTextTracks().on('change', this._onChangeTrack.bind(this));
    },
 
-   _onAddTrack: function () {
+   _deferredLoad: function(mediaInfo, startTime) {
+      var request, tracks, subtitles, track, i, j;
+
       // add subtitle to text tracks
-      var subtitles = this.videojsPlayer.remoteTextTracks();
-      if (subtitles.length === this._subtitleCount && !loaded) {
-         var tracks = [];
-         for (var i = 0; i < subtitles.length; i++) {
-            var track = new chrome.cast.media.Track(i, chrome.cast.media.TrackType.TEXT);
+      subtitles = this.videojsPlayer.remoteTextTracks();
+
+      if (subtitles.length === this._subtitleCount) {
+         tracks = [];
+
+         for (i = 0; i < subtitles.length; i++) {
+            track = new chrome.cast.media.Track(i, chrome.cast.media.TrackType.TEXT);
+
             track.trackContentId = subtitles[i].src;
             track.trackContentType = 'text/vtt';
             track.subtype = chrome.cast.media.TextTrackType.CAPTIONS;
@@ -209,6 +215,13 @@ ChromecastTech = {
             tracks.push(track);
          }
          mediaInfo.tracks = tracks;
+         mediaInfo.textTrackStyle = {
+            backgroundColor: '#00000000', // see http://dev.w3.org/csswg/css-color/#hex-notation
+            foregroundColor: '#FFFFFFFF', // see http://dev.w3.org/csswg/css-color/#hex-notation
+            edgeType: 'OUTLINE', // can be: "NONE", "OUTLINE", "DROP_SHADOW", "RAISED", "DEPRESSED"
+            edgeColor: '#222222FF', // see http://dev.w3.org/csswg/css-color/#hex-notation
+            windowColor: '#222222FF', // see http://dev.w3.org/csswg/css-color/#hex-notation
+         };
 
          request = new chrome.cast.media.LoadRequest(mediaInfo);
          request.autoplay = true;
@@ -216,28 +229,29 @@ ChromecastTech = {
 
          // set active subtitle
          if (subtitles.length > 0) {
-            for (var j = 0; j < subtitles.length; j++) {
+            for (j = 0; j < subtitles.length; j++) {
                if (subtitles[j].mode === 'showing') {
-                  request.activeTrackIds = [j]
+                  request.activeTrackIds = [ j ];
                }
             }
          }
 
          this._loadMedia(request);
-         loaded = true;
       }
    },
 
-   _onChangeTrack: function () {
+   _onChangeTrack: function() {
+      var index, subtitles, tracksInfoRequest, i;
+
       if (cast.framework.CastContext.getInstance().b) {
-         var index = [];
-         var subtitles = this.videojsPlayer.remoteTextTracks()
-         for (var i = 0; i < subtitles.length; i++) {
+         index = [];
+         subtitles = this.videojsPlayer.remoteTextTracks();
+         for (i = 0; i < subtitles.length; i++) {
             if (subtitles[i].mode === 'showing') {
-               index = [i];
+               index = [ i ];
             }
          }
-         var tracksInfoRequest = new chrome.cast.media.EditTracksInfoRequest(index);
+         tracksInfoRequest = new chrome.cast.media.EditTracksInfoRequest(index);
          cast.framework.CastContext.getInstance().b.getSessionObj().media[0].editTracksInfo(tracksInfoRequest, null, null);
       }
    },
