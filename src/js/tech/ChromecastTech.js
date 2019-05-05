@@ -219,8 +219,8 @@ ChromecastTech = {
             backgroundColor: '#00000000', // see http://dev.w3.org/csswg/css-color/#hex-notation
             foregroundColor: '#FFFFFFFF', // see http://dev.w3.org/csswg/css-color/#hex-notation
             edgeType: 'OUTLINE', // can be: "NONE", "OUTLINE", "DROP_SHADOW", "RAISED", "DEPRESSED"
-            edgeColor: '#222222FF', // see http://dev.w3.org/csswg/css-color/#hex-notation
-            windowColor: '#222222FF', // see http://dev.w3.org/csswg/css-color/#hex-notation
+            edgeColor: '#000000FF', // see http://dev.w3.org/csswg/css-color/#hex-notation
+            windowColor: '#000000FF', // see http://dev.w3.org/csswg/css-color/#hex-notation
          };
 
          request = new chrome.cast.media.LoadRequest(mediaInfo);
